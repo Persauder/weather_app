@@ -28,3 +28,7 @@ export async function getWeatherByCoords(lat: number, lon: number): Promise<weat
     const data: weatherData = await response.json();
     return data;
 }
+
+export function getWeatherIcon(iconCode: string): string {
+    return `https://openweathermap.org/img/wn/${iconCode}@2x.png`;
+}
