@@ -7,13 +7,13 @@ const UNITS = 'metric';
 function handleApiError(response: Response): never {
     switch (response.status) {
         case 404:
-            throw new Error('Місто не знайдено. Перевірте правильність назви міста.');
+            throw new Error('City not found. Please check the city name.');
         case 401:
-            throw new Error('Невалідний API ключ. Перевірте налаштування.');
+            throw new Error('Invalid API key. Please check your settings.');
         case 429:
-            throw new Error('Перевищено ліміт запитів. Спробуйте пізніше.');
+            throw new Error('Request limit exceeded. Please try again later.');
         default:
-            throw new Error(`Помилка отримання даних про погоду: ${response.statusText}`);
+            throw new Error(`Failed to fetch weather data: ${response.statusText}`);
     }
 }
 
