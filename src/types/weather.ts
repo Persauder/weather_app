@@ -1,15 +1,15 @@
-export type weatherData = {
+export type WeatherResponse = {
     name: string;
-    main: main;
-    weather: weather[];
-    wind: wind;
-    sys: sys;
-    coord: coord;
+    main: Main;
+    weather: Weather[];
+    wind: Wind;
+    sys: Sys;
+    coord: Coord;
     visibility: number;
     dt: number;
 }
 
-type main = {
+export type Main = {
     temp: number;
     feels_like: number;
     temp_min: number;
@@ -18,25 +18,26 @@ type main = {
     humidity: number;
 }
 
-type weather = {
+export type Weather = {
     id: number;
     main: string;
     description: string;
     icon: string;
 }
 
-type wind = {
+export type Wind = {
     speed: number;
     deg: number;
     gust?: number;
 }
 
-type sys = {
+export type Sys = {
     country: string;
     sunrise: number;
     sunset: number;
 }
-type coord = {
+
+export type Coord = {
     lon: number;
     lat: number;
 }
