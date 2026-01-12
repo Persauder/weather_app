@@ -1,4 +1,4 @@
-type weatherData = {
+export type weatherData = {
     name: string;
     main: main;
     weather: weather[];
