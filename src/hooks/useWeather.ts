@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { type WeatherResponse } from '../types/weather';
-import { getWeatherByCity } from '../services/weatherAPI';
+import { getWeatherByCity, getWeatherByCoords } from '../services/weatherAPI';
 
 export function useWeather() {
     const [weather, setWeather] = useState<WeatherResponse | null>(null);
@@ -22,10 +22,26 @@ export function useWeather() {
         }
     };
 
+    const fetchWeatherByCoords = async (lat: number, lon: number) => {
+        setLoading(true);
+        setError(null);
+
+        try {
+            const data = await getWeatherByCoords(lat, lon);
+            setWeather(data);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'An unknown error occurred');
+            setWeather(null);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return {
         weather,
         loading,
         error,
         fetchWeather,
+        fetchWeatherByCoords,
     };
 }
