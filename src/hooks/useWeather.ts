@@ -37,11 +37,16 @@ export function useWeather() {
         }
     };
 
+    const clearError = () => {
+        setError(null);
+    };
+
     return {
         weather,
         loading,
         error,
         fetchWeather,
         fetchWeatherByCoords,
+        clearError,
     };
 }
