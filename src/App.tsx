@@ -89,16 +89,29 @@ function App() {
   const handleTimeChange = useCallback((timestamp: number) => {
     setSelectedTimestamp(timestamp);
 
-    // Update layer URLs with timestamp
+    // Calculate time difference from now (in hours)
+    const now = Date.now();
+    const hoursDiff = Math.abs(timestamp - now) / (1000 * 60 * 60);
+
+    // Adjust layer opacity based on time distance (visual effect to show timeline impact)
+    // Closer to current time = more opaque, further = more transparent
+    const opacityMultiplier = Math.max(0.3, 1 - (hoursDiff / 24));
+
+    // Update layer URLs with timestamp and adjust opacity for visual feedback
     setLayers((prev) =>
       prev.map((layer) => {
-        // For now, we'll use current data layers
-        // In future, you can add timestamp parameter if API supports it
-        return layer;
+        const baseUrl = layer.tileUrl.split('&t=')[0].split('?')[0];
+        const apiKey = import.meta.env.VITE_OPENWEATHER_API_KEY;
+
+        return {
+          ...layer,
+          tileUrl: `${baseUrl}?appid=${apiKey}&t=${timestamp}`,
+          opacity: layer.enabled ? layer.opacity * opacityMultiplier : layer.opacity,
+        };
       })
     );
 
-    console.log('Time changed to:', new Date(timestamp));
+    console.log('⏰ Time changed to:', new Date(timestamp).toLocaleString(), `(${hoursDiff.toFixed(1)}h from now)`);
   }, []);
 
   const handlePlayPause = useCallback((playing: boolean) => {
@@ -144,20 +157,6 @@ function App() {
     }
   }, [isPlaying]);
 
-  // Effect to update map when timestamp changes
-  useEffect(() => {
-    if (selectedTimestamp) {
-      console.log('⏰ Timeline active - timestamp:', new Date(selectedTimestamp).toLocaleString());
-
-      // Update layer URLs to force re-render (add cache-busting parameter)
-      setLayers((prev) =>
-        prev.map((layer) => ({
-          ...layer,
-          tileUrl: layer.tileUrl.split('&t=')[0] + `&t=${selectedTimestamp}`,
-        }))
-      );
-    }
-  }, [selectedTimestamp]);
 
 
   return (
@@ -216,19 +215,55 @@ function App() {
 
           {/* Timestamp Indicator (when timeline is active) */}
           {selectedTimestamp && (
-            <div className="absolute top-20 left-1/2 transform -translate-x-1/2 z-[1000] bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold">⏰ Timeline Active:</span>
-                <span className="text-sm">
-                  {new Date(selectedTimestamp).toLocaleString('en-US', {
-                    month: 'short',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
-                </span>
+            <>
+              {/* Time of day overlay for visual feedback */}
+              <div
+                className="absolute inset-0 pointer-events-none z-[500] transition-all duration-1000"
+                style={{
+                  backgroundColor: (() => {
+                    const hour = new Date(selectedTimestamp).getHours();
+                    // Night: 8pm-6am (purple/dark)
+                    if (hour >= 20 || hour < 6) {
+                      return 'rgba(25, 25, 112, 0.15)'; // Midnight blue
+                    }
+                    // Morning: 6am-10am (orange/warm)
+                    if (hour >= 6 && hour < 10) {
+                      return 'rgba(255, 140, 0, 0.1)'; // Dawn orange
+                    }
+                    // Afternoon: 10am-6pm (bright/clear)
+                    if (hour >= 10 && hour < 18) {
+                      return 'rgba(135, 206, 250, 0.05)'; // Sky blue
+                    }
+                    // Evening: 6pm-8pm (golden)
+                    return 'rgba(255, 215, 0, 0.12)'; // Golden hour
+                  })()
+                }}
+              />
+
+              {/* Timestamp badge */}
+              <div className="absolute top-20 left-1/2 transform -translate-x-1/2 z-[1000] bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg animate-pulse">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold">⏰ Timeline Active:</span>
+                  <span className="text-sm">
+                    {new Date(selectedTimestamp).toLocaleString('en-US', {
+                      month: 'short',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </span>
+                  <span className="text-xs bg-white/20 px-2 py-1 rounded">
+                    {(() => {
+                      const hour = new Date(selectedTimestamp).getHours();
+                      if (hour >= 20 || hour < 6) return '🌙 Night';
+                      if (hour >= 6 && hour < 10) return '🌅 Morning';
+                      if (hour >= 10 && hour < 18) return '☀️ Day';
+                      return '🌆 Evening';
+                    })()}
+                  </span>
+                </div>
               </div>
-            </div>
+            </>
           )}
 
           {/* Timeline Component */}
