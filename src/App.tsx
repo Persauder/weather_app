@@ -6,6 +6,7 @@ import { ErrorMessage } from './components/ErrorMessage';
 import { WeatherDetails } from './components/WeatherDetails';
 import { WeatherMap } from './components/Map/WeatherMap.tsx';
 import { Sidebar } from './components/Sidebar/SideBar.tsx';
+import { Timeline } from './components/Timeline/Timeline';
 import { DEFAULT_LAYERS } from './constants/layers';
 import type { LayerConfig } from './constants/layers';
 import { type LatLngExpression } from 'leaflet';
@@ -20,6 +21,9 @@ function App() {
 
   // Weather layers
   const [layers, setLayers] = useState<LayerConfig[]>(DEFAULT_LAYERS);
+
+  // Timeline state
+  const [isPlaying, setIsPlaying] = useState(false);
 
   // Markers for searched locations
   const markers = weather
@@ -81,6 +85,17 @@ function App() {
     [fetchWeather]
   );
 
+  const handleTimeChange = useCallback((timestamp: number) => {
+    console.log('Time changed to:', new Date(timestamp));
+    // Future: fetch weather data for selected timestamp
+  }, []);
+
+  const handlePlayPause = useCallback((playing: boolean) => {
+    setIsPlaying(playing);
+    console.log('Timeline animation:', playing ? 'playing' : 'paused');
+    // Future: implement timeline animation
+  }, []);
+
 
   return (
     <div className="flex h-screen">
@@ -135,6 +150,13 @@ function App() {
               <WeatherDetails weather={weather} />
             </div>
           )}
+
+          {/* Timeline Component */}
+          <Timeline
+            onTimeChange={handleTimeChange}
+            isPlaying={isPlaying}
+            onPlayPause={handlePlayPause}
+          />
         </div>
       </div>
     </div>
