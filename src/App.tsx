@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useWeather } from './hooks/useWeather';
 import { SearchBar } from './components/Search/SearchBar.tsx';
 import { Loader } from './components/Loader';
@@ -24,6 +24,7 @@ function App() {
 
   // Timeline state
   const [isPlaying, setIsPlaying] = useState(false);
+  const [selectedTimestamp, setSelectedTimestamp] = useState<number | null>(null);
 
   // Markers for searched locations
   const markers = weather
@@ -86,15 +87,77 @@ function App() {
   );
 
   const handleTimeChange = useCallback((timestamp: number) => {
+    setSelectedTimestamp(timestamp);
+
+    // Update layer URLs with timestamp
+    setLayers((prev) =>
+      prev.map((layer) => {
+        // For now, we'll use current data layers
+        // In future, you can add timestamp parameter if API supports it
+        return layer;
+      })
+    );
+
     console.log('Time changed to:', new Date(timestamp));
-    // Future: fetch weather data for selected timestamp
   }, []);
 
   const handlePlayPause = useCallback((playing: boolean) => {
     setIsPlaying(playing);
-    console.log('Timeline animation:', playing ? 'playing' : 'paused');
-    // Future: implement timeline animation
+
+    if (playing) {
+      // Start timeline animation
+      console.log('Starting timeline animation...');
+      // This will cycle through time slots automatically
+    } else {
+      console.log('Timeline animation paused');
+    }
   }, []);
+
+  // Animation effect for timeline playback
+  const animationRef = useRef<number | null>(null);
+  const lastUpdateRef = useRef<number>(0);
+
+  useEffect(() => {
+    if (isPlaying) {
+      lastUpdateRef.current = Date.now(); // Initialize on first play
+
+      const animate = () => {
+        const now = Date.now();
+        // Update every 2 seconds
+        if (now - lastUpdateRef.current > 2000) {
+          lastUpdateRef.current = now;
+
+          // Move to next time slot (this will trigger handleTimeChange in Timeline component)
+          // The Timeline component handles its own time progression
+          console.log('Animation tick:', new Date().toLocaleTimeString());
+        }
+        animationRef.current = requestAnimationFrame(animate);
+      };
+
+      animationRef.current = requestAnimationFrame(animate);
+
+      return () => {
+        if (animationRef.current) {
+          cancelAnimationFrame(animationRef.current);
+        }
+      };
+    }
+  }, [isPlaying]);
+
+  // Effect to update map when timestamp changes
+  useEffect(() => {
+    if (selectedTimestamp) {
+      console.log('⏰ Timeline active - timestamp:', new Date(selectedTimestamp).toLocaleString());
+
+      // Update layer URLs to force re-render (add cache-busting parameter)
+      setLayers((prev) =>
+        prev.map((layer) => ({
+          ...layer,
+          tileUrl: layer.tileUrl.split('&t=')[0] + `&t=${selectedTimestamp}`,
+        }))
+      );
+    }
+  }, [selectedTimestamp]);
 
 
   return (
@@ -148,6 +211,23 @@ function App() {
           {weather && !loading && (
             <div className="absolute top-4 right-4 z-[1000] max-w-md">
               <WeatherDetails weather={weather} />
+            </div>
+          )}
+
+          {/* Timestamp Indicator (when timeline is active) */}
+          {selectedTimestamp && (
+            <div className="absolute top-20 left-1/2 transform -translate-x-1/2 z-[1000] bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-semibold">⏰ Timeline Active:</span>
+                <span className="text-sm">
+                  {new Date(selectedTimestamp).toLocaleString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                </span>
+              </div>
             </div>
           )}
 
