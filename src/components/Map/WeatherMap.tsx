@@ -2,8 +2,8 @@ import { useMemo, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents, useMap } from 'react-leaflet';
 import { type LatLngExpression } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { WeatherPopup } from './WeatherPopup';
-import { type WeatherResponse } from '../types/weather';
+import { WeatherPopup } from '../WeatherPopup.tsx';
+import { type WeatherResponse } from '../../types/weather.ts';
 
 // Fix for default marker icons in Leaflet with Vite
 import L from 'leaflet';

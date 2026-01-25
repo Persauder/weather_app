@@ -1,40 +1,179 @@
+import { useState, useCallback } from 'react';
 import { useWeather } from './hooks/useWeather';
-import { SearchBar } from './components/SearchBar';
-import { WeatherDetails } from './components/WeatherDetails';
+import { SearchBar } from './components/Search/SearchBar.tsx';
 import { Loader } from './components/Loader';
 import { ErrorMessage } from './components/ErrorMessage';
+import { WeatherDetails } from './components/WeatherDetails';
+import { WeatherMap } from './components/Map/WeatherMap.tsx';
+import { Sidebar } from './components/Sidebar/SideBar.tsx';
+import { type LatLngExpression } from 'leaflet';
+
+interface LayerConfig {
+  id: string;
+  name: string;
+  tileUrl: string;
+  enabled: boolean;
+  opacity?: number;
+}
 
 function App() {
-  const { weather, loading, error, fetchWeather, clearError } = useWeather();
+  const { weather, loading, error, fetchWeather, fetchWeatherByCoords, clearError } = useWeather();
+
+  // Map state
+  const [mapCenter, setMapCenter] = useState<LatLngExpression>([50.4501, 30.5234]); // Kyiv default
+  const [mapZoom] = useState(6);
+
+  // Weather layers
+  const [layers, setLayers] = useState<LayerConfig[]>([
+    {
+      id: 'temp',
+      name: 'Temperature',
+      tileUrl: 'https://tile.openweathermap.org/map/temp_new/{z}/{x}/{y}.png?appid={API_KEY}',
+      enabled: true,
+      opacity: 0.6,
+    },
+    {
+      id: 'precipitation',
+      name: 'Precipitation',
+      tileUrl: 'https://tile.openweathermap.org/map/precipitation_new/{z}/{x}/{y}.png?appid={API_KEY}',
+      enabled: false,
+      opacity: 0.6,
+    },
+    {
+      id: 'clouds',
+      name: 'Clouds',
+      tileUrl: 'https://tile.openweathermap.org/map/clouds_new/{z}/{x}/{y}.png?appid={API_KEY}',
+      enabled: false,
+      opacity: 0.6,
+    },
+    {
+      id: 'wind',
+      name: 'Wind',
+      tileUrl: 'https://tile.openweathermap.org/map/wind_new/{z}/{x}/{y}.png?appid={API_KEY}',
+      enabled: false,
+      opacity: 0.6,
+    },
+  ]);
+
+  // Markers for searched locations
+  const markers = weather
+    ? [
+        {
+          id: 'searched',
+          position: [weather.coord.lat, weather.coord.lon] as LatLngExpression,
+          weatherData: weather,
+        },
+      ]
+    : [];
+
+  const handleToggleLayer = useCallback((id: string, enabled: boolean) => {
+    setLayers((prev) =>
+      prev.map((layer) => (layer.id === id ? { ...layer, enabled } : layer))
+    );
+  }, []);
+
+  const handleSetLayerOpacity = useCallback((id: string, opacity: number) => {
+    setLayers((prev) =>
+      prev.map((layer) => (layer.id === id ? { ...layer, opacity } : layer))
+    );
+  }, []);
+
+  const handleCenterToUser = useCallback(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          setMapCenter([latitude, longitude]);
+          fetchWeatherByCoords(latitude, longitude);
+        },
+        (error) => {
+          console.error('Error getting location:', error);
+          alert('Unable to get your location. Please enable location services.');
+        }
+      );
+    } else {
+      alert('Geolocation is not supported by your browser.');
+    }
+  }, [fetchWeatherByCoords]);
+
+  const handleMapClick = useCallback(
+    (lat: number, lon: number) => {
+      fetchWeatherByCoords(lat, lon);
+      setMapCenter([lat, lon]);
+    },
+    [fetchWeatherByCoords]
+  );
+
+  const handleSearchCity = useCallback(
+    async (city: string) => {
+      await fetchWeather(city);
+      // After fetching, update map center if we got weather data
+      // This will be handled by the markers update
+    },
+    [fetchWeather]
+  );
+
+  // Update map center when weather changes
+  useState(() => {
+    if (weather) {
+      setMapCenter([weather.coord.lat, weather.coord.lon]);
+    }
+  });
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-400 to-blue-600 py-8 px-4">
-      <div className="max-w-2xl mx-auto">
-        <h1 className="text-4xl font-bold text-white text-center mb-8">
-          Weather App
-        </h1>
+    <div className="flex h-screen">
+      {/* Sidebar */}
+      <div className="absolute top-4 left-4 z-[1000]">
+        <Sidebar
+          layers={layers}
+          onToggleLayer={handleToggleLayer}
+          onSetLayerOpacity={handleSetLayerOpacity}
+          onCenterToUser={handleCenterToUser}
+        />
+      </div>
 
-        <div className="mb-6">
-          <SearchBar onSearch={fetchWeather} isLoading={loading} />
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col">
+        {/* Top Bar with Search */}
+        <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-4 shadow-lg z-[999]">
+          <div className="max-w-4xl mx-auto">
+            <h1 className="text-3xl font-bold text-white text-center mb-4">
+              🌤️ Weather Map Application
+            </h1>
+            <SearchBar onSearch={handleSearchCity} isLoading={loading} />
+
+            {error && (
+              <div className="mt-4">
+                <ErrorMessage message={error} onClose={clearError} />
+              </div>
+            )}
+          </div>
         </div>
 
-        {error && (
-          <div className="mb-6">
-            <ErrorMessage message={error} onClose={clearError} />
-          </div>
-        )}
+        {/* Map and Weather Details */}
+        <div className="flex-1 relative">
+          {loading && (
+            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-[1000]">
+              <Loader />
+            </div>
+          )}
 
-        {loading && <Loader />}
+          {/* Weather Map */}
+          <WeatherMap
+            center={mapCenter}
+            zoom={mapZoom}
+            layers={layers}
+            markers={markers}
+            onMapClick={handleMapClick}
+          />
 
-        {!loading && weather && <WeatherDetails weather={weather} />}
-
-        {!loading && !weather && !error && (
-          <div className="bg-white rounded-xl shadow-lg p-8 text-center">
-            <p className="text-gray-500 text-lg">
-              Enter a city name to get weather information
-            </p>
-          </div>
-        )}
+          {/* Weather Details Card (overlay) */}
+          {weather && !loading && (
+            <div className="absolute top-4 right-4 z-[1000] max-w-md">
+              <WeatherDetails weather={weather} />
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
