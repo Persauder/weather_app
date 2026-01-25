@@ -6,15 +6,10 @@ import { ErrorMessage } from './components/ErrorMessage';
 import { WeatherDetails } from './components/WeatherDetails';
 import { WeatherMap } from './components/Map/WeatherMap.tsx';
 import { Sidebar } from './components/Sidebar/SideBar.tsx';
+import { DEFAULT_LAYERS } from './constants/layers';
+import type { LayerConfig } from './constants/layers';
 import { type LatLngExpression } from 'leaflet';
 
-interface LayerConfig {
-  id: string;
-  name: string;
-  tileUrl: string;
-  enabled: boolean;
-  opacity?: number;
-}
 
 function App() {
   const { weather, loading, error, fetchWeather, fetchWeatherByCoords, clearError } = useWeather();
@@ -24,36 +19,7 @@ function App() {
   const [mapZoom] = useState(6);
 
   // Weather layers
-  const [layers, setLayers] = useState<LayerConfig[]>([
-    {
-      id: 'temp',
-      name: 'Temperature',
-      tileUrl: 'https://tile.openweathermap.org/map/temp_new/{z}/{x}/{y}.png?appid={API_KEY}',
-      enabled: true,
-      opacity: 0.6,
-    },
-    {
-      id: 'precipitation',
-      name: 'Precipitation',
-      tileUrl: 'https://tile.openweathermap.org/map/precipitation_new/{z}/{x}/{y}.png?appid={API_KEY}',
-      enabled: false,
-      opacity: 0.6,
-    },
-    {
-      id: 'clouds',
-      name: 'Clouds',
-      tileUrl: 'https://tile.openweathermap.org/map/clouds_new/{z}/{x}/{y}.png?appid={API_KEY}',
-      enabled: false,
-      opacity: 0.6,
-    },
-    {
-      id: 'wind',
-      name: 'Wind',
-      tileUrl: 'https://tile.openweathermap.org/map/wind_new/{z}/{x}/{y}.png?appid={API_KEY}',
-      enabled: false,
-      opacity: 0.6,
-    },
-  ]);
+  const [layers, setLayers] = useState<LayerConfig[]>(DEFAULT_LAYERS);
 
   // Markers for searched locations
   const markers = weather
@@ -106,19 +72,15 @@ function App() {
 
   const handleSearchCity = useCallback(
     async (city: string) => {
-      await fetchWeather(city);
-      // After fetching, update map center if we got weather data
-      // This will be handled by the markers update
+      const result = await fetchWeather(city);
+      // Update map center after successful search
+      if (result) {
+        setMapCenter([result.coord.lat, result.coord.lon]);
+      }
     },
     [fetchWeather]
   );
 
-  // Update map center when weather changes
-  useState(() => {
-    if (weather) {
-      setMapCenter([weather.coord.lat, weather.coord.lon]);
-    }
-  });
 
   return (
     <div className="flex h-screen">
