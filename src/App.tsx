@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useWeather } from './hooks/useWeather';
 import { useSubscriptions } from './hooks/useSubscriptions';
+import { usePayments } from './hooks/usePayments';
 import { SearchBar } from './components/Search/SearchBar.tsx';
 import { Loader } from './components/Loader';
 import { ErrorMessage } from './components/ErrorMessage';
@@ -9,6 +10,7 @@ import { WeatherMap } from './components/Map/WeatherMap.tsx';
 import { Sidebar } from './components/Sidebar/SideBar.tsx';
 import { Timeline } from './components/Timeline/Timeline';
 import { SubscriptionForm } from './components/Subscription/SubscriptionForm';
+import { SubscriptionManagement } from './components/Payment/SubscriptionManagement';
 import { DEFAULT_LAYERS } from './constants/layers';
 import type { LayerConfig } from './constants/layers';
 import { type LatLngExpression } from 'leaflet';
@@ -29,6 +31,18 @@ function App() {
     checkForWeatherAlerts,
   } = useSubscriptions();
 
+  // Payment management
+  const {
+    payments,
+    paymentMethods,
+    userPlan,
+    processPayment,
+    addPaymentMethod,
+    cancelSubscription,
+    reactivateSubscription,
+    canAddLocation,
+  } = usePayments();
+
   // Map state
   const [mapCenter, setMapCenter] = useState<LatLngExpression>([50.4501, 30.5234]); // Kyiv default
   const [mapZoom] = useState(6);
@@ -47,6 +61,9 @@ function App() {
     lat: number;
     lon: number;
   } | null>(null);
+
+  // Subscription management modal state
+  const [showSubscriptionManagement, setShowSubscriptionManagement] = useState(false);
 
   // Markers for searched locations
   const markers = weather
@@ -155,10 +172,17 @@ function App() {
   }, []);
 
   const handleSubscriptionSubmit = useCallback((formData: any) => {
+    // Check if user can add more locations based on their plan
+    if (!canAddLocation(subscriptions.length)) {
+      alert('⚠️ You have reached the maximum number of locations for your plan. Please upgrade to add more locations.');
+      setShowSubscriptionManagement(true);
+      return;
+    }
+
     addSubscription(formData);
     setShowSubscriptionForm(false);
     setSubscriptionLocation(null);
-  }, [addSubscription]);
+  }, [addSubscription, canAddLocation, subscriptions.length]);
 
   const handleSubscriptionCancel = useCallback(() => {
     setShowSubscriptionForm(false);
@@ -173,6 +197,11 @@ function App() {
 
     return () => clearInterval(interval);
   }, [checkForWeatherAlerts]);
+
+  // Payment handlers
+  const handleProcessPayment = useCallback(async (planId: string, paymentMethodId: string) => {
+    await processPayment(planId, paymentMethodId);
+  }, [processPayment]);
 
   // Animation effect for timeline playback
   const animationRef = useRef<number | null>(null);
@@ -230,9 +259,18 @@ function App() {
         {/* Top Bar with Search */}
         <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-4 shadow-lg z-[999]">
           <div className="max-w-4xl mx-auto">
-            <h1 className="text-3xl font-bold text-white text-center mb-4">
-              🌤️ Weather Map Application
-            </h1>
+            <div className="flex items-center justify-between mb-4">
+              <h1 className="text-3xl font-bold text-white">
+                🌤️ Weather Map Application
+              </h1>
+              <button
+                onClick={() => setShowSubscriptionManagement(true)}
+                className="px-4 py-2 bg-yellow-400 text-gray-900 rounded-lg font-semibold hover:bg-yellow-300 transition-colors flex items-center gap-2"
+              >
+                <span>💎</span>
+                <span>Upgrade Plan</span>
+              </button>
+            </div>
             <SearchBar onSearch={handleSearchCity} isLoading={loading} />
 
             {error && (
@@ -348,6 +386,20 @@ function App() {
           }}
           onSubmit={handleSubscriptionSubmit}
           onCancel={handleSubscriptionCancel}
+        />
+      )}
+
+      {/* Subscription Management Modal */}
+      {showSubscriptionManagement && (
+        <SubscriptionManagement
+          userPlan={userPlan}
+          payments={payments}
+          paymentMethods={paymentMethods}
+          onProcessPayment={handleProcessPayment}
+          onAddPaymentMethod={addPaymentMethod}
+          onCancelSubscription={cancelSubscription}
+          onReactivateSubscription={reactivateSubscription}
+          onClose={() => setShowSubscriptionManagement(false)}
         />
       )}
     </div>
