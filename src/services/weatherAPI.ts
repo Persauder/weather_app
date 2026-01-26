@@ -1,7 +1,7 @@
 import { type WeatherResponse } from '../types/weather';
 
 const BASE_URL = 'https://api.openweathermap.org/data/2.5';
-const API_KEY = import.meta.env.API_KEY;
+const API_KEY = import.meta.env.VITE_OPENWEATHER_API_KEY;
 const UNITS = 'metric';
 
 function handleApiError(response: Response): never {
@@ -45,3 +45,28 @@ export async function getWeatherByCoords(lat: number, lon: number): Promise<Weat
 export function getWeatherIcon(iconCode: string): string {
     return `https://openweathermap.org/img/wn/${iconCode}@2x.png`;
 }
+
+export interface ForecastResponse {
+    list: WeatherResponse[];
+    city: {
+        name: string;
+        coord: {
+            lat: number;
+            lon: number;
+        };
+    };
+}
+
+export async function getForecastByCoords(lat: number, lon: number): Promise<ForecastResponse> {
+    const url = `${BASE_URL}/forecast?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=${UNITS}`;
+
+    const response = await fetch(url);
+
+    if (!response.ok) {
+        handleApiError(response);
+    }
+
+    const data: ForecastResponse = await response.json();
+    return data;
+}
+
