@@ -4,6 +4,10 @@
 
 A complete subscription system that allows users to subscribe to weather alerts for specific locations with customizable notification preferences.
 
+## 💳 **PAYMENT SYSTEM NOW INCLUDED!**
+
+Full payment processing with pricing tiers, payment methods, and subscription management!
+
 ---
 
 ## 🎯 **Features**
@@ -31,6 +35,15 @@ A complete subscription system that allows users to subscribe to weather alerts 
 - Subscriptions saved to localStorage
 - Alerts saved locally
 - Data persists across sessions
+
+### 5. **Payment & Billing System** 💳
+- **4 Pricing Tiers**: Free, Basic ($4.99), Pro ($9.99), Enterprise ($29.99)
+- **Multiple Payment Methods**: Credit/Debit cards, PayPal, Cryptocurrency
+- **Subscription Management**: Upgrade, downgrade, cancel, reactivate
+- **Location Limits**: Based on subscription tier (1, 5, 20, or unlimited)
+- **Payment History**: View all transactions
+- **Auto-renewal**: Automatic monthly billing
+- **Secure Processing**: Simulated Stripe-like payment flow
 
 ---
 
@@ -81,6 +94,35 @@ A complete subscription system that allows users to subscribe to weather alerts 
 - Gradient purple-to-pink design
 - Email icon
 - Hover effects
+
+### **Subscription Management Page:**
+- Full-screen modal with dark overlay
+- **Pricing Cards**: 4 plans displayed in grid
+  - Recommended badge on Pro plan
+  - Current plan highlighted
+  - Feature lists for each tier
+  - Price display with billing cycle
+  - "Upgrade Now" / "Get Started" buttons
+- **Current Plan Status**: Shows active plan, end date, cancel/reactivate options
+- **Payment History Table**: Transaction log with status indicators
+
+### **Payment Form:**
+- Modal overlay for checkout
+- Order summary with plan details
+- Payment method selector (radio buttons)
+- Default payment method indicator
+- Add new payment method option
+- Terms and conditions
+- "Pay $X" button with loading state
+
+### **Add Payment Method Form:**
+- Payment type selection (Card / PayPal / Crypto)
+- **Card Form**: Number, expiry, CVV inputs with formatting
+- **PayPal**: Redirect message
+- **Crypto**: Support message
+- "Set as default" checkbox
+- Security note
+- Card brand detection (Visa, Mastercard, Amex)
 
 ---
 
