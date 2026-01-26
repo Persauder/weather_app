@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useWeather } from './hooks/useWeather';
+import { useSubscriptions } from './hooks/useSubscriptions';
 import { SearchBar } from './components/Search/SearchBar.tsx';
 import { Loader } from './components/Loader';
 import { ErrorMessage } from './components/ErrorMessage';
@@ -7,6 +8,7 @@ import { WeatherDetails } from './components/WeatherDetails';
 import { WeatherMap } from './components/Map/WeatherMap.tsx';
 import { Sidebar } from './components/Sidebar/SideBar.tsx';
 import { Timeline } from './components/Timeline/Timeline';
+import { SubscriptionForm } from './components/Subscription/SubscriptionForm';
 import { DEFAULT_LAYERS } from './constants/layers';
 import type { LayerConfig } from './constants/layers';
 import { type LatLngExpression } from 'leaflet';
@@ -14,6 +16,18 @@ import { type LatLngExpression } from 'leaflet';
 
 function App() {
   const { weather, loading, error, fetchWeather, fetchWeatherByCoords, clearError } = useWeather();
+
+  // Subscription management
+  const {
+    subscriptions,
+    alerts,
+    addSubscription,
+    removeSubscription,
+    toggleSubscription,
+    markAlertAsRead,
+    clearAllAlerts,
+    checkForWeatherAlerts,
+  } = useSubscriptions();
 
   // Map state
   const [mapCenter, setMapCenter] = useState<LatLngExpression>([50.4501, 30.5234]); // Kyiv default
@@ -25,6 +39,14 @@ function App() {
   // Timeline state
   const [isPlaying, setIsPlaying] = useState(false);
   const [selectedTimestamp, setSelectedTimestamp] = useState<number | null>(null);
+
+  // Subscription form state
+  const [showSubscriptionForm, setShowSubscriptionForm] = useState(false);
+  const [subscriptionLocation, setSubscriptionLocation] = useState<{
+    name: string;
+    lat: number;
+    lon: number;
+  } | null>(null);
 
   // Markers for searched locations
   const markers = weather
@@ -126,6 +148,32 @@ function App() {
     }
   }, []);
 
+  // Subscription handlers
+  const handleSubscribeClick = useCallback((locationName: string, lat: number, lon: number) => {
+    setSubscriptionLocation({ name: locationName, lat, lon });
+    setShowSubscriptionForm(true);
+  }, []);
+
+  const handleSubscriptionSubmit = useCallback((formData: any) => {
+    addSubscription(formData);
+    setShowSubscriptionForm(false);
+    setSubscriptionLocation(null);
+  }, [addSubscription]);
+
+  const handleSubscriptionCancel = useCallback(() => {
+    setShowSubscriptionForm(false);
+    setSubscriptionLocation(null);
+  }, []);
+
+  // Periodically check for weather alerts (simulate real-time updates)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      checkForWeatherAlerts();
+    }, 30000); // Check every 30 seconds
+
+    return () => clearInterval(interval);
+  }, [checkForWeatherAlerts]);
+
   // Animation effect for timeline playback
   const animationRef = useRef<number | null>(null);
   const lastUpdateRef = useRef<number>(0);
@@ -168,6 +216,12 @@ function App() {
           onToggleLayer={handleToggleLayer}
           onSetLayerOpacity={handleSetLayerOpacity}
           onCenterToUser={handleCenterToUser}
+          subscriptions={subscriptions}
+          alerts={alerts}
+          onToggleSubscription={toggleSubscription}
+          onRemoveSubscription={removeSubscription}
+          onMarkAlertAsRead={markAlertAsRead}
+          onClearAllAlerts={clearAllAlerts}
         />
       </div>
 
@@ -208,8 +262,17 @@ function App() {
 
           {/* Weather Details Card (overlay) */}
           {weather && !loading && (
-            <div className="absolute top-4 right-4 z-[1000] max-w-md">
+            <div className="absolute top-4 right-4 z-[1000] max-w-md space-y-2">
               <WeatherDetails weather={weather} />
+
+              {/* Subscribe Button */}
+              <button
+                onClick={() => handleSubscribeClick(weather.name, weather.coord.lat, weather.coord.lon)}
+                className="w-full px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all shadow-lg flex items-center justify-center gap-2"
+              >
+                <span>📧</span>
+                <span>Subscribe to Alerts</span>
+              </button>
             </div>
           )}
 
@@ -274,6 +337,19 @@ function App() {
           />
         </div>
       </div>
+
+      {/* Subscription Form Modal */}
+      {showSubscriptionForm && subscriptionLocation && (
+        <SubscriptionForm
+          locationName={subscriptionLocation.name}
+          coordinates={{
+            lat: subscriptionLocation.lat,
+            lon: subscriptionLocation.lon,
+          }}
+          onSubmit={handleSubscriptionSubmit}
+          onCancel={handleSubscriptionCancel}
+        />
+      )}
     </div>
   );
 }
